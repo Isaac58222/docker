@@ -1,0 +1,345 @@
+######################################################
+# DOCKER COMMNANS and its uses
+#
+# author: Isaac D
+# for doubt clearance : chatgpt telegram bot  (for easy use) 
+## docker commands as root if not add sudo
+# os : linux centos or redhat
+### everying is typed after checking in docker in ec2 
+### may have some spelling mistake as everything is typed 
+######################################################
+#we can you - instard of space eg docker-run
+
+1#install docker 
+    yum install docker.io -y
+
+2#check images
+    docker images #not docker image 
+
+3#run image 
+    docker run -itd ununtu
+    # -i = interactive with container shell
+    # -t = detaached mode ,makes container run background
+    # -d = terminal , allocate pseudo tty  
+
+4#view running container
+    docker ps
+
+5#stop running container
+    docker stop <CONTAINER ID from docker ps>
+
+6#to view all process(running,stopped,exited)
+    docker ps -a
+
+7#login in container
+    docker exec -it <container id> bash
+    # bash for where we want to work here bash shell
+    # type apt update to check ubuntu
+
+8#exit from container
+    exit
+
+9#kill container
+    docker kill <CONTAINER ID>
+    #docker stop vs docker kill
+    #docker stop = shut down gracefully (recommanded for general use)
+    #docker kill = forcefully shutdown (for unresponsive and stuck in loop)
+
+10#delele container
+    docker rm <CONTAINER ID>
+    # dont show in docker ps -a
+
+11# delete image
+    docker rmi <IMAGE ID from docker images>
+    # stop container before deleting image
+
+12#delete running container
+    docker rm -f <CONTAINER ID>
+    #rm = remove
+    #-f = forcefully
+
+13# detele all running and stopped containers
+    docker rm -f $(docker ps -aq)
+    #-q = display only numeric ID of the container
+    #-a = all
+
+14# see docker commands
+    docker -> double tap
+
+15# details about docker
+    docker info
+    docker system info
+
+16# to view disk space of docker
+    docker system df
+
+17# to view logs or real time events
+    docker system events
+
+18# to remove unused data
+    docker system prune
+    # it may delete unused image and containers too
+    # it will ask y/n to confirm
+    # if yes means shows space cleared
+
+19# to know about command 
+    docker <command> help
+   eg. docker system help
+
+20# to view real time usage of container like cpu%,mem uasge/limit etc
+    docker stats
+
+21# search image which username not stricking in mind
+    docker search <image name>
+    ex. docker search unbuntu
+    shows names with ubuntu image
+    official image has ok in it
+
+22# run container with custom name
+    docker run --name <name> <image name>
+    docker run --name app1 ubuntu
+    # app1 is custom name of the container
+
+23# run command in container without loggin in it
+    docker exec <container name> <coomand>
+ ex.docker exec app1 mkdir isaac
+ you can now verify by docker exec app1 ls
+
+24# copy file  from local host to container
+   docker cp <file/folder name> <container name/id>:<path to be copy> 
+   docker cp isaac.sh app1:/
+
+25# copy container to local host
+   docker cp <container name/id>:<path to be copy>/<filename> <path in local host to copy>   
+   docker cp app1:/isaac1.sh .
+   # . means current dir
+   # / means root path
+
+#26 to view container logs
+    docker logs <container name/id>
+  ex. docker logs app1
+
+27# to view stats of a container
+    docker stats <container name /id>
+  ex. docker stats app1
+    #shows cpu%,mem usage/limit ,mem%,net i/o, block i/o, pids of conainer
+
+28# to display runnung process of container
+    docker top <container name/id>
+  ex. docker top app1
+
+29# run container on perticular port
+    docker run -itd -p 80:80 <image name> 
+   ex.docker run -itd -p 81:80 httpd # port forword to 81
+   # -p = port
+   # check by publicip:81 in ec2/gcp vm/azure vm 
+   # surfix port can be viewd by docker inpect httpd and check expose port
+
+30# to viwe info about the docker image
+    docker inspect <image id or tag>
+  ex. docker inpect httpd
+   # has meta data port ,layers,evn,cmd,os,size etc 
+
+31# to viwe docker image history
+    docker history <image name>
+    docker history app1 
+    # shows details  and changes of the image with date
+
+32# to backup/save image in local host(ziping) for offline using
+    docker save <image name:tag> > <filename>.tar
+   ex. docker save ubuntu:latest > ubuntu-backup.tar
+    #you can see .tar file in local host
+    # we can you this without internet
+
+33# to use image from tar file to image
+    docker load -i <tar image file name>
+    docker load -i ubuntu-backup.tar
+    #to check delete ubuntu image before docker load -i ubuntu-backup.tar
+    # after loading you can see ubuntu image in docker images
+
+
+34# container to docker image
+    #run a container
+    docker run -itd --name ubuntu1 ubuntu /bin/bash
+    #login that container
+      docker exec -it ubuntu1 bin/bash
+      # update
+      apt update
+      # make dir for identification
+      mkdir itworkrs
+      # install httpd for example
+      apt install httpd
+      #exit the container
+      exit 
+    #check container id
+    docker ps
+    # commit container
+    docker commit <container id> <imagename>:<tag>
+   eg. docker commit 0hf4sft6k customimage:2.1
+   # check image
+   docker images
+   # run that container
+   docker run -itd --name myubuntu customimage:2.1 bin/bash
+   # login the container
+   docker exec -it myubuntu bin/bash
+   # check itworks dir is there or not
+   ls  
+
+35# push to dockerhub
+    #login
+    docker login 
+    <username>
+    <password>
+    # rename image with your username
+    docker tag <imagename:tag> <username/imagename:tag>
+    docker tag customimage:2.1 isaac5822/customimage:2.1
+    #push to docker hub
+    docker push isaac5822/customimage:2.1
+    #check in docker hub
+
+36# Dockerfile
+ #make dir
+ mkdir dockerfiles
+ #change dir
+ cd dockerfiles
+ # create dockerfile
+ nano Dockerfile
+  #instrutions shoud be in capital
+  # to set base os
+  FROM <os image>
+  eg. FROM ubuntu
+
+37 # to label image
+  #can be used to say some info  
+  LABEL 'APP_SUPPORT'="python"
+  LABEL "app_env"="development"
+  
+38 # to exicute commands will creating container
+  RUN <command>
+  RUN apt update
+  RUN apt install httpd -y
+  # to copy code to the image
+  COPY <filename> <path to be copied>
+  eg. COPY index.html /var/www/html/
+  # to exicute command after container run
+  CMD <command>
+  eg. CMD ['echo','hello world']
+  # start service
+  CMD <appication command> -D FOREGROUND
+  # we cant use systemctl because we cant use kernel command in container as it is a process isolation 
+  eg. CMD apachectl -D FOREGROUND
+# entrypoint
+ # act like cmd
+    ENTRYPOINT <appication command> <command>
+ eg.ENTRYPOINT apachectl -D FOREFROUND    
+    
+           #### CMD vs ENTRYPOINT   ###
+CMD
+# create dockerfile with all instructions needed wth CMD pachectl -D FOREFROUND 
+39 # build and run the image for example image name myimage
+eg. docker run -itd --name web1 -p 81:80  myimage
+# again run the image another port and with /bin/bash at the end
+  docker run -itd --name web1 -p 82:80 bin/bash myimage
+## check both port in web browser 
+### 81 works and 82 shows error because CMD command is overwrited by /bin/bash
+### check this in docker ps and see the commands
+
+ENTRYPOINT 
+# create dockerfile with all instructions needed wth ENTRYPOINT apachectl -D FOREFROUND 
+# build and run the image for example image name myimage2
+eg. docker run -itd --name web1 -p 83:80  myimage
+# again run the image another port and with /bin/bash at the end
+  docker run -itd --name web1 -p 84:80 bin/bash myimage
+## check both port in web browser 
+### check this in docker ps and see the commands and there is no change
+## both will be working
+
+40 # to set port
+    EXPOSE <PORT>
+  eg. EXPOSE 80
+  # we can give more than one port 
+  eg. EXPOSE 80 433
+  # we can give also tcp,udp speific
+  eg. EXPOSE 80/tcp 8080/udp
+
+41 # to add files and extract
+  #eg .tar ,.gzip etc files should extract
+  ADD <filename> <destination>
+  eg. ADD isaac.tar /user/isaac/app
+  # same as copy but COPY just copy ,ADD copy and extract
+ 
+42# to mount volume
+ VOLUME /data 
+   VOLUME localhost path:to container
+ eg.VOLUME /appdata:/appdata
+ # this will create lc volume to container
+  
+43# to set home dir
+    WORKDIR /home/user/app
+    # /home/user/app will be default home dir after launching the container
+44# create env variable
+    ENV
+# 
+  ARG  
+#
+    
+#       SAMPLE Docker file
+FROM ubuntu
+RUN apt -y update
+RUN apt install -y httpd 
+COPY index.html /var/www/html/
+EXPOSE 80
+CMD apachectl -D FOREGROUND 
+  #save
+  # create index.html #add condent #save    
+
+45# build docker image
+  docker build -t myimage:1.0 .
+  # -t myimage is image name and its tag
+  # . = present dir 
+    
+46# build image which in another dir
+    docker build -t myimage:2.0 -f /var/tmp/dockerfile 
+    # replace /var/tmp/dockerfile with the path of dockerfile
+    # image will be created layer by layer
+47# change tag after image create
+   docker tag <imageid> <name>:<tag>
+
+                     DOCKER NETWORKING
+# to viwe network types
+  docker network ls
+  # shows 
+    #bridge = default hand has docker0 and ip range 172.17.0.1 etc 
+     docker run ubuntu will be connected to bridge network
+    #none = no networking ,can use for testing and no ip assigned cant access netwprk
+      docker run \ --network=none ubuntu can connect to none network
+    #host = can only acess by host ,cant access from outside
+       docker run \ --network=host ubuntu can connect to host network
+
+48# to inspect network 
+  docker inspect <network name>
+  eg. docker inspect bridge
+
+49# to create new network 
+   docker create testbridge
+   #check by docker network ls    
+
+50# create container with our network
+  docker run -itd --name myweb1 --network=testbridge httpd
+
+51# to port forwarding
+  docker run -itd --name myweb2 -p 81:80 httpd
+  # check by docker ps
+
+52# to check container port forwarding
+  docker port <container name/id>
+  eg. docker port myweb2
+  # if there is no port forwrding shows nothing
+
+53# create auto port forwarding
+  docker run -itd --name myweb3 -P httpd
+  #-P = assign random port
+  # can check by docker ps -> port
+                
+                     docker volumes 
+# data  
