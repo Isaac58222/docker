@@ -101,7 +101,7 @@
     # app1 is custom name of the container
 
 23# run command in container without loggin in it
-    docker exec <container name> <coomand>
+    docker exec <container name> <command>
  ex.docker exec app1 mkdir isaac
  you can now verify by docker exec app1 ls
 
@@ -124,7 +124,7 @@
   ex. docker stats app1
     #shows cpu%,mem usage/limit ,mem%,net i/o, block i/o, pids of conainer
 
-28# to display runnung process of container
+28# to display running process of container
     docker top <container name/id>
   ex. docker top app1
 
@@ -133,14 +133,14 @@
    ex.docker run -itd -p 81:80 httpd # port forword to 81
    # -p = port
    # check by publicip:81 in ec2/gcp vm/azure vm 
-   # surfix port can be viewd by docker inpect httpd and check expose port
+   # surfix port can be viewed by docker inpect httpd and check expose port
 
-30# to viwe info about the docker image
+30# to view info about the docker image
     docker inspect <image id or tag>
   ex. docker inpect httpd
    # has meta data port ,layers,evn,cmd,os,size etc 
 
-31# to viwe docker image history
+31# to view docker image history
     docker history <image name>
     docker history app1 
     # shows details  and changes of the image with date
@@ -214,28 +214,32 @@
   LABEL 'APP_SUPPORT'="python"
   LABEL "app_env"="development"
   
-38 # to exicute commands will creating container
+38 # to exicute commands while creating container
   RUN <command>
   RUN apt update
   RUN apt install httpd -y
+  
   # to copy code to the image
   COPY <filename> <path to be copied>
   eg. COPY index.html /var/www/html/
+  
   # to exicute command after container run
   CMD <command>
   eg. CMD ['echo','hello world']
+  
   # start service
   CMD <appication command> -D FOREGROUND
   # we cant use systemctl because we cant use kernel command in container as it is a process isolation 
   eg. CMD apachectl -D FOREGROUND
-# entrypoint
+
+ # entrypoint
  # act like cmd
     ENTRYPOINT <appication command> <command>
- eg.ENTRYPOINT apachectl -D FOREFROUND    
+ eg.ENTRYPOINT apachectl -D FOREGROUND    
     
            #### CMD vs ENTRYPOINT   ###
 CMD
-# create dockerfile with all instructions needed wth CMD pachectl -D FOREFROUND 
+# create dockerfile with all instructions needed wth CMD apachectl -D FOREGROUND 
 39 # build and run the image for example image name myimage
 eg. docker run -itd --name web1 -p 81:80  myimage
 # again run the image another port and with /bin/bash at the end
@@ -245,7 +249,7 @@ eg. docker run -itd --name web1 -p 81:80  myimage
 ### check this in docker ps and see the commands
 
 ENTRYPOINT 
-# create dockerfile with all instructions needed wth ENTRYPOINT apachectl -D FOREFROUND 
+# create dockerfile with all instructions needed wth ENTRYPOINT apachectl -D FOREGROUND 
 # build and run the image for example image name myimage2
 eg. docker run -itd --name web1 -p 83:80  myimage
 # again run the image another port and with /bin/bash at the end
@@ -270,9 +274,9 @@ eg. docker run -itd --name web1 -p 83:80  myimage
  
 42# to mount volume
  VOLUME /data 
-   VOLUME localhost path:to container
+   VOLUME localhost path:to container path to be saved
  eg.VOLUME /appdata:/appdata
- # this will create lc volume to container
+ # this will create ls volume to container
   
 43# to set home dir
     WORKDIR /home/user/app
@@ -280,7 +284,7 @@ eg. docker run -itd --name web1 -p 83:80  myimage
 44# create env variable
     ENV
 # 
-  ARG  
+   ARG  
 #
     
 #       SAMPLE Docker file
@@ -302,11 +306,12 @@ CMD apachectl -D FOREGROUND
     docker build -t myimage:2.0 -f /var/tmp/dockerfile 
     # replace /var/tmp/dockerfile with the path of dockerfile
     # image will be created layer by layer
+
 47# change tag after image create
    docker tag <imageid> <name>:<tag>
 
                      DOCKER NETWORKING
-# to viwe network types
+# to view network types
   docker network ls
   # shows 
     #bridge = default hand has docker0 and ip range 172.17.0.1 etc 
@@ -342,4 +347,314 @@ CMD apachectl -D FOREGROUND
   # can check by docker ps -> port
                 
                      docker volumes 
-# data  
+# data  in docker
+   data in a conatainer will be erased by defalut
+   to aviod this we will be adding volumes
+ #types
+tmpfs - tempravary file system
+   default volume
+   files will there when container running/stopped
+   files will removed when container removed
+# propresistant data
+
+bind mount
+   we can mount volume from the docker host from any sourse eg. /,/tmp,/home
+
+volume
+   files stores in docker area (var/lib/docker/)
+   these are created in var/lib/docker/
+
+54 # create docker volume
+   docker volume create <volume_name>
+  eg. docker volume create data_volume
+  # if we dont menstion name it will create random name like container id
+55# check docker volume
+   docker volume ls
+
+56# check volume path and other details
+    docker volume inspect <volume name>
+   eg. docker volume inspect data_volume
+
+57# mount volume to container
+    docker run -itd --mount source=<volume name>,destination=<destination> ubuntu
+      eg. docker run -itd  --name ubuntu1 --mount source=data_volume,destination=/data ubuntu
+      # if destination path is not there it will create
+      # check it by docker exce -it ubuntu1
+      # ls we can see /data 
+      # open new tab of docker host cd /var/lib/docker/volumes/data_volumes/_data
+      # touch dummy.txt
+      # also check in ubuntu1 container we can see dummy.#txt in data folder
+      # also create a file dummy2.txt in ubuntu1 container and delete the container
+      # check /var/lib/docker/volumes/data_volumes/_data wecan see both the files  
+
+58 # mount bind volume
+    docker run -itd -v <src:destination>  <image>
+   eg . docker run -itd --name ubuntu3  -v /data/mnt:/data1 ubuntu /bin/bash
+   # can check by log in 
+
+59 # delete volume
+    docker volume rm <volume_name>
+   eg. docker volime rm data_volume
+
+60 # remove unused volume
+    docker volume prune
+    # delete unused volume atleast by one container 
+
+###############################################################################################################
+                               container oschestration (docker swarm)
+#############################################################################################################
+@ container management of multiple nodes across multiple host
+@ one of container oschestration tool : docker swarm
+advantages
+ @ oschestration
+ @ high availibility
+ @ scaling (up/down)
+ @ multi host networking
+ @ service discovery and load balancing balancing
+ @ rolling updates ( update without downtime)
+
+architechture
+
+swarm manager 
+@ discovery service
+@ task managing
+@ can run container but not recommended
+
+docker node
+@ act as docker deamon
+@ worker node
+
+
+docker swarm installation with 2 worker node
+
+# install docker in 3 vm eg in ubuntu docker manager , node 1, node 2
+61# install swarn in docker manager vm
+  docker swarm init --advertise-addr <ip of vm>
+  eg. docker swarm init --advertise-addr 192.168.2.22
+  # joining token will be generated for worker nodes
+62 # add more manager node 
+   docer swarm join-token manager
+#@ copy the token and run in the nodes or another manager
+
+63 #list node in docker swarm in manager
+   docker node ls
+# nodes with msster will be shown with manager as leader
+# we can use docker swarm commands in manager node only
+
+64# promote worker node to manager node
+  docker node promote <node name>
+  # docker node ls will show reachable which means leader 
+
+65# demote manager to worker node
+   docker node demote <node name>
+
+66 # remove node 
+   docker node rm <node name>
+
+67 # check worker node process from manager node
+   docker node ps <node name>
+
+68# change container to other node for eg. maintance
+  docker node update --availability drain <node name>
+  # it will show desier state as drained
+  # cant run container
+
+69 # start drained container for you
+   docker node update --availability active <node name>
+
+70# stop container comming in from other container eg. while drain
+    docker node update --availability pause <node 
+    # container still working
+
+   
+--------------------------------------
+SERVICE
+-------
+71# create replicas in docker swam
+   docker create service --mode global  <image>
+  eg.docker create service --mode global  -p 80:80 --name web2 httpd
+  # replicas will created according to number of nodes with each 1
+
+72 # create replicas as we want in docker swarm
+    docker create service --replicas 2 -p 80:80 --name web1 httpd
+ eg. docker create service --replicas 2 -p 80:80 --name web1 httpd
+ # 2 containers will be created by manager if no space in 1 node it will choose other
+
+73# check services
+  docker services ls
+
+74# check relicas running in which node
+  docker service ps <service name>
+  docker service ps web1  
+
+75# scale up replicas
+  docker service scale <service name>=<number of replicas>
+ eg. docker service scale web1=5
+  # web1 will have 5 replicas
+76# scale up replicas
+  docker service scale <container name>=<number of replicas>
+  eg. docker service scale web1=1
+
+77# service update
+  docker service update --image <image name>:<version>
+  eg. docker service update --image isaac582/app1:latest
+78# roll back updates 
+  docker service rollback <service name>
+  docker service rollback app1
+  # roll back to previous update
+
+------------------------------------------------------------
+DOCKER COMPOSE
+--------------
+@ tool for run multiple containers
+@ can pack the entire app with dependent containers in one file
+@ if we launch a docker compose file we can start the whole app
+@ if we down a docker compose file we can stop the whole app
+@ we define all information about the container
+
+# docker compose installation
+  apt install docker-compose # for ubuntu
+  # search online if cant download
+  # download by curl command and follow the instruction
+
+docker run --name website -itd -p 8081:80 nginx
+docker network create mynetwork --subnet 192.168.92.0/24
+# we going to convert the command to docker compose file
+DOCKER COMPOSE FILE
+-------------------
+mkdir dockerdir
+cd dockerdir
+nano docker-compose.yaml
+-----------------------------------------
+version: "3"                            |  # 3 is the verion of docker
+services:                               |  # this has the whole command (docker run --name website -itd -p 8081:80 nginx) inside it
+    website:                      	|  # name of container
+       image: nginx                	|  # this define the image of the container
+       ports:                           |  # this define -p
+	 - "8081:80"                    |  # this define port 8081:80
+       restart: always                  |  # this define it always come back after reboot
+       website2:                      	|  
+       image: nginx                	| 
+       ports:                           | 
+	 - "8082:80"                    |  # this define port 8082:80
+       restart: always                  |
+       networks:                        |  # configure network for perticular container container
+         mynetwork:                     |  # network name
+          - ipv4_address: "192.168.92.0"|
+networks:                               |  # we can configure the network settings
+  mynetwork:                            |  # name of the network overall
+    ipam:                               |  # Internet Protocol Adress Manager (IPAM)
+      driver: default                   |  # it set default driver bridge
+      config:                           |  # config settings
+        - subnet: "192.168.92.0/24"     |  # subnet range
+-----------------------------------------  # type crl+s ,ctl+x to save
+# this create compose named foldername_container_number of container created
+# as dockerdir_website_1,dockerdir_wibsite2_1
+# if we dont specify docker network it will create network as foldername_default
+# as dockerdir_default
+
+79# exicute docker compose
+ docker-compose up
+# this start the docker compose file
+# docker-compose.yaml file must be there to run this command or will show error
+
+80# run docker-compose up with yaml file in differnt name eg. app.yaml
+    docker-compose -f <filename.yaml> up
+   eg. docker-compose -f app.yaml up -d
+
+81# check docker-compose images
+   docker-compose docker-compose.yaml # for docker-compose.yaml named files
+   docker-compose -f <filename.yaml>  # for othername.yaml files
+   docker-compose -f app.yaml
+
+82# check docker-compose down
+   docker-compose down
+   docker-compose -f <filename.yaml> down  # for othername.yaml files
+# this will down all the resourse and will remove it
+
+83# check docker-compose processes
+    docker-compose ps
+    docker-compose -f <filename.yaml> ps # for othername.yaml files
+
+84# check docker-compose processes with time
+    docker-compose ps -a
+    docker-compose -f <filename.yaml> ps -a # for othername.yaml files
+# this gives the process with created and up status
+
+85# restart docker-compose
+    docker-compose docker-compose.yaml restart# for docker-compose.yaml named files
+   docker-compose -f <filename.yaml> restart # for othername.yaml files
+   docker-compose -f app.yaml restart
+86# restart docker-compose's particular service name
+    docker-compose docker-compose.yaml -t <seconds in number> <service name>   #for docker-compose.yaml named files
+   docker-compose -f <filename.yaml> -t <service name> # for othername.yaml files
+   docker-compose -f app.yaml -t 10 website
+# container will restart in 10 seconds
+# -t is optional
+
+87# stop docker-compose
+    docker-compose docker-compose.yaml stop # for docker-compose.yaml named files
+   docker-compose -f <filename.yaml> stop # for othername.yaml files
+   docker-compose -f app.yaml stop
+88# stop docker-compose's particular service name
+    docker-compose docker-compose.yaml stop <service name>   #for docker-compose.yaml named files
+   docker-compose -f <filename.yaml> -t <service name> # for othername.yaml files
+   docker-compose -f app.yaml stop website
+
+89# find docker-compose file error as cant up
+     docker-compose docker-compose.yaml config  #for docker-compose.yaml named files
+     docker-compose -f <filename.yaml> config# for othername.yaml files
+     docker-compose -f app.yaml config
+# this tell any syntex error,version error or other by mentioning the line like line 2,column 14
+    
+CPU and memory management
+--------------------------
+- docker continers uses the docker host memory
+- it is possible that one cantainer can use more 
+- so others may not get and may down
+- we can set limit that container cant cross the limit
+- if it dont means also it only down
+- we should alocate 75% for cpu and memory for container
+- balance is requried by host os 
+- cpu request -guarranteed cpu resoures for containers (reserved)
+- cpu limit - limit of the  container to use
+
+90# set  minimum memory for docker container
+  docker run --memory-reservation=<number of mb>m  <image-name>
+  eg. docker run --memory-reservation=512m -d --name web1 httpd
+
+91# set  maximum memory for docker container
+  docker run -m=<number of mb>m <image-name>
+  eg. docker run -m=1024m -d --name web2 httpd
+
+92# set  minimum and maximum memory for docker
+  docker run --memory-reservation=<number of mb>m -m=<number of mb>m <image-name>
+  eg. docker run --memory-reservation=512m -m=1024m -d --name web1 httpd
+# --memory-reservation= should always less than -m=
+
+93# set maximum limit for cpu
+  docker run --cpus=<cpu limit> <image name>
+  docker run --cpus=1.2 -d --name web2 httpd
+
+# check memory ,cpu overall by docker ps and detailed by docker ps <container name/id>
+
+94# share cpu for containers
+ docker run --cpu-shares=<number of mb> <image name> 
+ docker run --cpu-shares=1000 -d --name web4 httpd
+ 
+
+add to docker-compose file as 
+------------------------------------------
+version: "3"				  |
+service:				  |
+	website2:			  |
+           image: nginx			  |
+           deploy:                        | 
+               resources:                 |  
+                  limits:                 | # define limits
+                    cpus: 0.50            | 
+                    memory: 1024m         | 
+                  reservations:           |# define minimum resouces
+                    cpus: 0.25            | 
+                    memory: 256m          | 
+------------------------------------------	        
